@@ -50,7 +50,7 @@ export function ClientForm({ clientId, onSuccess }: ClientFormProps) {
     if (clientId && token) {
       const fetchClient = async () => {
         try {
-          const response = await fetch(`http://localhost:5000/api/clients/${clientId}`, {
+          const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000'}/api/clients/${clientId}`, {
             headers: {
               'Authorization': `Bearer ${token}`
             }
@@ -101,8 +101,8 @@ export function ClientForm({ clientId, onSuccess }: ClientFormProps) {
 
       const method = clientId ? 'PUT' : 'POST';
       const url = clientId
-        ? `http://localhost:5000/api/clients/${clientId}`
-        : 'http://localhost:5000/api/clients';
+        ? `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000'}/api/clients/${clientId}`
+        : `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000'}/api/clients`;
 
       const response = await fetch(url, {
         method,

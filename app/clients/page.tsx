@@ -54,7 +54,7 @@ export default function ClientsPage() {
         if (search) params.append('search', search);
         if (status) params.append('status', status);
 
-        const response = await fetch(`http://localhost:5000/api/clients?${params}`, {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000'}/api/clients?${params}`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -81,7 +81,7 @@ export default function ClientsPage() {
     if (!window.confirm('Are you sure you want to delete this client?')) return;
 
     try {
-      const response = await fetch(`http://localhost:5000/api/clients/${id}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000'}/api/clients/${id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
