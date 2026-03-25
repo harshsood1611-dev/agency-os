@@ -130,18 +130,19 @@ export function ClientForm({ clientId, onSuccess }: ClientFormProps) {
   };
 
   return (
-    <Card className="p-8 bg-white max-w-2xl">
-      <h2 className="text-2xl font-bold text-gray-900 mb-6">
-        {clientId ? 'Edit Client' : 'Add New Client'}
-      </h2>
+    <div className="h-full flex flex-col">
+      <Card className="p-8 bg-white max-w-2xl flex-1 overflow-y-auto">
+        <h2 className="text-2xl font-bold text-gray-900 mb-6">
+          {clientId ? 'Edit Client' : 'Add New Client'}
+        </h2>
 
-      {error && (
-        <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg mb-6">
-          {error}
-        </div>
-      )}
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg mb-6">
+            {error}
+          </div>
+        )}
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-6">
         {/* Basic Info */}
         <div>
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Basic Information</h3>
@@ -286,7 +287,7 @@ export function ClientForm({ clientId, onSuccess }: ClientFormProps) {
         </div>
 
         {/* Buttons */}
-        <div className="flex gap-4 pt-4">
+        <div className="flex gap-4 pt-4 sticky bottom-0 bg-white border-t border-gray-200 p-6 -mx-8 -mb-8">
           <Button
             type="submit"
             disabled={loading}
@@ -302,7 +303,8 @@ export function ClientForm({ clientId, onSuccess }: ClientFormProps) {
             Cancel
           </button>
         </div>
-      </form>
-    </Card>
+        </form>
+      </Card>
+    </div>
   );
 }

@@ -16,9 +16,25 @@ app.use(cors({
 }));
 
 // MongoDB Connection
-mongoose.connect(process.env.MONGODB_URI)
+const mongooseOptions = {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+  serverSelectionTimeoutMS: 15000,
+  socketTimeoutMS: 45000
+};
+
+const mongoUri = process.env.MONGODB_URI;
+if (!mongoUri) {
+  console.error('MONGODB_URI is undefined! Set it in Render environment variables.');
+  process.exit(1);
+}
+
+mongoose.connect(mongoUri, mongooseOptions)
   .then(() => console.log('MongoDB connected'))
-  .catch(err => console.log('MongoDB connection error:', err));
+  .catch(err => {
+    console.error('MongoDB connection error:', err);
+    process.exit(1); // crash hard so render service restarts
+  });
 
 // Health check route
 app.get('/api/health', (req, res) => {
@@ -28,8 +44,15 @@ app.get('/api/health', (req, res) => {
 // Routes
 import authRoutes from './routes/auth.js';
 import clientRoutes from './routes/clients.js';
+import projectRoutes from './routes/projects.js';
+import taskRoutes from './routes/tasks.js';
+import messageRoutes from './routes/messages.js';
+
 app.use('/api/auth', authRoutes);
 app.use('/api/clients', clientRoutes);
+app.use('/api/projects', projectRoutes);
+app.use('/api/tasks', taskRoutes);
+app.use('/api/messages', messageRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
