@@ -47,12 +47,18 @@ import clientRoutes from './routes/clients.js';
 import projectRoutes from './routes/projects.js';
 import taskRoutes from './routes/tasks.js';
 import messageRoutes from './routes/messages.js';
+import invoiceRoutes from './routes/invoices.js';
+import documentRoutes from './routes/documents.js';
+import notificationRoutes from './routes/notifications.js';
 
 app.use('/api/auth', authRoutes);
 app.use('/api/clients', clientRoutes);
 app.use('/api/projects', projectRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/messages', messageRoutes);
+app.use('/api/invoices', invoiceRoutes);
+app.use('/api/documents', documentRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

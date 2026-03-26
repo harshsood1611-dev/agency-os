@@ -5,11 +5,16 @@ import { useAuth } from '@/app/context/AuthContext';
 import { ProtectedRoute } from '@/app/components/ProtectedRoute';
 import { DashboardLayout } from '@/app/components/DashboardLayout';
 import { Card } from '@/components/ui/card';
+import { Users, TrendingUp, Briefcase, DollarSign, AlertCircle } from 'lucide-react';
 
 interface DashboardStats {
   totalClients: number;
   activeClients: number;
   prospects: number;
+  activeProjects?: number;
+  completedProjects?: number;
+  totalRevenue?: number;
+  pendingPayments?: number;
 }
 
 export default function DashboardPage() {
@@ -45,59 +50,156 @@ export default function DashboardPage() {
     fetchStats();
   }, [token]);
 
+  if (error) {
+    return (
+      <ProtectedRoute>
+        <DashboardLayout>
+          <div className="flex items-center gap-3 bg-destructive/10 border border-destructive/20 text-destructive px-4 py-4 rounded-lg">
+            <AlertCircle size={20} className="flex-shrink-0" />
+            <p className="font-medium">{error}</p>
+          </div>
+        </DashboardLayout>
+      </ProtectedRoute>
+    );
+  }
+
   return (
     <ProtectedRoute>
       <DashboardLayout>
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-8">Welcome to Your Dashboard</h1>
+        <div className="space-y-8">
+          {/* Header */}
+          <div>
+            <h1 className="text-4xl font-bold text-foreground">Dashboard</h1>
+            <p className="text-muted-foreground mt-2">Welcome back! Here's your agency overview.</p>
+          </div>
 
-          {error && (
-            <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg mb-6">
-              {error}
-            </div>
-          )}
-
+          {/* Loading State */}
           {loading ? (
-            <div className="flex items-center justify-center h-64">
-              <p className="text-gray-600">Loading dashboard...</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {[1, 2, 3, 4].map((i) => (
+                <Card key={i} className="p-6 animate-pulse">
+                  <div className="h-20 bg-muted rounded-lg"></div>
+                </Card>
+              ))}
             </div>
           ) : stats ? (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {/* Total Clients */}
-              <Card className="p-6 bg-white">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-gray-600 text-sm font-medium">Total Clients</p>
-                    <p className="text-3xl font-bold text-gray-900 mt-2">{stats.totalClients}</p>
+            <>
+              {/* Main Stats Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {/* Total Clients */}
+                <Card className="p-6 border-l-4 border-l-primary hover:shadow-lg transition-shadow">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Total Clients</p>
+                      <p className="text-3xl font-bold text-foreground mt-3">{stats.totalClients}</p>
+                    </div>
+                    <div className="p-3 bg-primary/10 rounded-lg">
+                      <Users className="text-primary" size={24} />
+                    </div>
                   </div>
-                  <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center text-2xl">
-                    👥
+                </Card>
+
+                {/* Active Clients */}
+                <Card className="p-6 border-l-4 border-l-emerald-500 hover:shadow-lg transition-shadow">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Active Clients</p>
+                      <p className="text-3xl font-bold text-foreground mt-3">{stats.activeClients}</p>
+                    </div>
+                    <div className="p-3 bg-emerald-500/10 rounded-lg">
+                      <TrendingUp className="text-emerald-500" size={24} />
+                    </div>
                   </div>
+                </Card>
+
+                {/* Active Projects */}
+                <Card className="p-6 border-l-4 border-l-amber-500 hover:shadow-lg transition-shadow">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Active Projects</p>
+                      <p className="text-3xl font-bold text-foreground mt-3">{stats.activeProjects || 0}</p>
+                    </div>
+                    <div className="p-3 bg-amber-500/10 rounded-lg">
+                      <Briefcase className="text-amber-500" size={24} />
+                    </div>
+                  </div>
+                </Card>
+
+                {/* Total Revenue */}
+                <Card className="p-6 border-l-4 border-l-emerald-600 hover:shadow-lg transition-shadow">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Total Revenue</p>
+                      <p className="text-3xl font-bold text-foreground mt-3">${(stats.totalRevenue || 0).toLocaleString()}</p>
+                    </div>
+                    <div className="p-3 bg-emerald-600/10 rounded-lg">
+                      <DollarSign className="text-emerald-600" size={24} />
+                    </div>
+                  </div>
+                </Card>
+              </div>
+
+              {/* Secondary Stats */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Prospects */}
+                <Card className="p-6 hover:shadow-lg transition-shadow">
+                  <p className="text-sm font-medium text-muted-foreground mb-2">Pipeline</p>
+                  <p className="text-2xl font-bold text-foreground">{stats.prospects}</p>
+                  <p className="text-xs text-muted-foreground mt-2">Prospects & Leads</p>
+                </Card>
+
+                {/* Completed Projects */}
+                <Card className="p-6 hover:shadow-lg transition-shadow">
+                  <p className="text-sm font-medium text-muted-foreground mb-2">Completed</p>
+                  <p className="text-2xl font-bold text-foreground">{stats.completedProjects || 0}</p>
+                  <p className="text-xs text-muted-foreground mt-2">Finished Projects</p>
+                </Card>
+
+                {/* Pending Payments */}
+                <Card className="p-6 hover:shadow-lg transition-shadow">
+                  <p className="text-sm font-medium text-muted-foreground mb-2">Pending</p>
+                  <p className="text-2xl font-bold text-foreground">${(stats.pendingPayments || 0).toLocaleString()}</p>
+                  <p className="text-xs text-muted-foreground mt-2">Awaiting Payment</p>
+                </Card>
+              </div>
+
+              {/* Quick Actions */}
+              <Card className="p-6">
+                <h3 className="text-lg font-semibold text-foreground mb-4">Quick Actions</h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <a
+                    href="/clients/new"
+                    className="flex items-center justify-center gap-2 px-4 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors font-medium text-sm"
+                  >
+                    <Users size={16} /> Add Client
+                  </a>
+                  <a
+                    href="/projects/new"
+                    className="flex items-center justify-center gap-2 px-4 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors font-medium text-sm"
+                  >
+                    <Briefcase size={16} /> New Project
+                  </a>
+                  <a
+                    href="/clients"
+                    className="flex items-center justify-center gap-2 px-4 py-3 border border-border hover:bg-secondary rounded-lg transition-colors font-medium text-sm"
+                  >
+                    <Users size={16} /> View Clients
+                  </a>
+                  <a
+                    href="/projects"
+                    className="flex items-center justify-center gap-2 px-4 py-3 border border-border hover:bg-secondary rounded-lg transition-colors font-medium text-sm"
+                  >
+                    <Briefcase size={16} /> All Projects
+                  </a>
                 </div>
               </Card>
-
-              {/* Active Clients */}
-              <Card className="p-6 bg-white">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-gray-600 text-sm font-medium">Active Clients</p>
-                    <p className="text-3xl font-bold text-gray-900 mt-2">{stats.activeClients}</p>
-                  </div>
-                  <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center text-2xl">
-                    ✅
-                  </div>
-                </div>
-              </Card>
-
-              {/* Prospects */}
-              <Card className="p-6 bg-white">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-gray-600 text-sm font-medium">Prospects</p>
-                    <p className="text-3xl font-bold text-gray-900 mt-2">{stats.prospects}</p>
-                  </div>
-                  <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center text-2xl">
-                    🎯
+            </>
+          ) : null}
+        </div>
+      </DashboardLayout>
+    </ProtectedRoute>
+  );
+}
                   </div>
                 </div>
               </Card>

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/app/context/AuthContext';
 import { Card } from '@/components/ui/card';
 import Link from 'next/link';
+import { Trash2, ArrowRight, AlertCircle } from 'lucide-react';
 
 interface Task {
   _id: string;
@@ -24,18 +25,18 @@ interface KanbanBoardProps {
   onTaskCreated?: () => void;
 }
 
-const priorityColors = {
-  'Low': 'border-l-gray-400',
-  'Medium': 'border-l-blue-400',
-  'High': 'border-l-orange-400',
-  'Critical': 'border-l-red-400'
+const priorityConfig = {
+  'Low': { color: 'bg-blue-50 text-blue-700 border-l-blue-500', bg: 'bg-blue-50' },
+  'Medium': { color: 'bg-amber-50 text-amber-700 border-l-amber-500', bg: 'bg-amber-50' },
+  'High': { color: 'bg-orange-50 text-orange-700 border-l-orange-500', bg: 'bg-orange-50' },
+  'Critical': { color: 'bg-red-50 text-red-700 border-l-red-500', bg: 'bg-red-50' }
 };
 
-const statusTitles = {
-  'New': 'New Tasks',
-  'In Progress': 'In Progress',
-  'Completed': 'Completed',
-  'Blocked': 'Blocked'
+const statusConfig = {
+  'New': { title: 'New Tasks', color: 'bg-gray-100', textColor: 'text-gray-700' },
+  'In Progress': { title: 'In Progress', color: 'bg-blue-100', textColor: 'text-blue-700' },
+  'Completed': { title: 'Completed', color: 'bg-emerald-100', textColor: 'text-emerald-700' },
+  'Blocked': { title: 'Blocked', color: 'bg-red-100', textColor: 'text-red-700' }
 };
 
 export function KanbanBoard({ projectId, onTaskCreated }: KanbanBoardProps) {
@@ -150,93 +151,130 @@ export function KanbanBoard({ projectId, onTaskCreated }: KanbanBoardProps) {
   };
 
   if (loading) {
-    return <div className="text-center py-8 text-gray-500">Loading tasks...</div>;
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin mx-auto mb-2"></div>
+          <p className="text-muted-foreground">Loading tasks...</p>
+        </div>
+      </div>
+    );
   }
 
   return (
     <div className="space-y-4">
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg">
-          {error}
+        <div className="flex items-center gap-3 bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded-lg">
+          <AlertCircle size={20} className="flex-shrink-0" />
+          <p className="font-medium">{error}</p>
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {(Object.keys(board) as Array<keyof typeof board>).map(status => (
-          <div key={status} className="bg-gray-100 rounded-lg p-4">
-            <h3 className="font-semibold text-gray-900 mb-4">
-              {statusTitles[status]} ({board[status].length})
-            </h3>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 auto-rows-max">
+        {(Object.keys(board) as Array<keyof typeof statusConfig>).map(status => {
+          const config = statusConfig[status];
+          return (
+            <div key={status} className={`${config.color} rounded-lg p-4 min-h-96`}>
+              <div className={`flex items-center gap-2 mb-4 pb-3 border-b border-border`}>
+                <h3 className={`font-semibold ${config.textColor} text-sm`}>
+                  {config.title}
+                </h3>
+                <span className={`ml-auto px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                  status === 'New' ? 'bg-gray-200 text-gray-700' :
+                  status === 'In Progress' ? 'bg-blue-200 text-blue-700' :
+                  status === 'Completed' ? 'bg-emerald-200 text-emerald-700' :
+                  'bg-red-200 text-red-700'
+                }`}>
+                  {board[status].length}
+                </span>
+              </div>
 
-            <div className="space-y-3">
-              {board[status].map(task => (
-                <Card
-                  key={task._id}
-                  className={`p-4 cursor-move border-l-4 ${priorityColors[task.priority]} bg-white`}
-                >
-                  <div className="flex justify-between items-start mb-2">
-                    <Link
-                      href={`/tasks/${task._id}`}
-                      className="text-blue-600 hover:text-blue-700 font-medium flex-1"
+              <div className="space-y-3">
+                {board[status].map(task => {
+                  const priority = task.priority as keyof typeof priorityConfig;
+                  const priorityCfg = priorityConfig[priority];
+                  return (
+                    <Card
+                      key={task._id}
+                      className={`p-4 border-l-4 ${priorityCfg.bg} hover:shadow-md transition-all cursor-move`}
                     >
-                      {task.title}
-                    </Link>
-                    <div className="flex gap-1 ml-2">
-                      <button
-                        onClick={() => handleDeleteTask(task._id)}
-                        className="text-red-500 hover:text-red-700 text-xs"
-                      >
-                        ✕
-                      </button>
-                    </div>
+                      <div className="flex justify-between items-start gap-2 mb-2">
+                        <Link
+                          href={`/tasks/${task._id}`}
+                          className="text-primary hover:text-primary/80 font-semibold flex-1 text-sm line-clamp-2"
+                        >
+                          {task.title}
+                        </Link>
+                        <button
+                          onClick={() => handleDeleteTask(task._id)}
+                          className="text-destructive hover:bg-destructive/10 p-1 rounded transition-colors flex-shrink-0"
+                          title="Delete task"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+
+                      {task.description && (
+                        <p className="text-xs text-muted-foreground mb-3 line-clamp-2">
+                          {task.description}
+                        </p>
+                      )}
+
+                      {/* Priority Badge */}
+                      <div className="mb-3">
+                        <span className={`inline-block px-2 py-1 rounded text-xs font-semibold ${priorityCfg.color}`}>
+                          {task.priority}
+                        </span>
+                      </div>
+
+                      {/* Metadata */}
+                      <div className="space-y-2 mb-3 text-xs">
+                        {task.dueDate && (
+                          <div className="flex items-center gap-1 text-muted-foreground">
+                            <span>📅 {new Date(task.dueDate).toLocaleDateString()}</span>
+                          </div>
+                        )}
+                        {task.assignedTo && (
+                          <div className="px-2 py-1 bg-background rounded text-xs font-medium border border-border">
+                            {task.assignedTo.firstName} {task.assignedTo.lastName}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Status Transitions */}
+                      {status !== 'Completed' && (
+                        <div className="flex flex-wrap gap-2 pt-3 border-t border-border">
+                          {(Object.keys(board) as Array<keyof typeof board>).map(newStatus => {
+                            if (newStatus !== status) {
+                              return (
+                                <button
+                                  key={newStatus}
+                                  onClick={() => handleUpdateTask(task._id, newStatus)}
+                                  className="flex items-center gap-1 px-2 py-1 bg-primary/10 text-primary hover:bg-primary/20 rounded text-xs font-medium transition-colors"
+                                  title={`Move to ${newStatus}`}
+                                >
+                                  <ArrowRight size={12} />
+                                  {newStatus}
+                                </button>
+                              );
+                            }
+                            return null;
+                          })}
+                        </div>
+                      )}
+                    </Card>
+                  );
+                })}
+
+                {board[status].length === 0 && (
+                  <div className="flex items-center justify-center py-12 text-center">
+                    <p className="text-muted-foreground text-sm">No tasks here yet</p>
                   </div>
-
-                  {task.description && (
-                    <p className="text-sm text-gray-600 mb-2">{task.description.substring(0, 50)}...</p>
-                  )}
-
-                  <div className="flex justify-between items-center text-xs text-gray-500 mb-3">
-                    <span className="font-semibold text-gray-700">{task.priority}</span>
-                    {task.dueDate && (
-                      <span>{new Date(task.dueDate).toLocaleDateString()}</span>
-                    )}
-                  </div>
-
-                  {task.assignedTo && (
-                    <div className="mb-3 p-2 bg-blue-50 rounded text-xs text-blue-800">
-                      {task.assignedTo.firstName} {task.assignedTo.lastName}
-                    </div>
-                  )}
-
-                  {status !== 'Completed' && (
-                    <div className="flex gap-2 text-xs">
-                      {Object.keys(board).map(newStatus => {
-                        if (newStatus !== status) {
-                          return (
-                            <button
-                              key={newStatus}
-                              onClick={() => handleUpdateTask(task._id, newStatus)}
-                              className="px-2 py-1 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded transition"
-                            >
-                              → {newStatus}
-                            </button>
-                          );
-                        }
-                        return null;
-                      })}
-                    </div>
-                  )}
-                </Card>
-              ))}
-
-              {board[status].length === 0 && (
-                <div className="text-center py-8 text-gray-400 text-sm">
-                  No tasks here yet
-                </div>
-              )}
+                )}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
