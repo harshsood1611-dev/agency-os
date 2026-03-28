@@ -130,7 +130,7 @@ export default function DashboardPage() {
                   <div className="flex items-start justify-between">
                     <div>
                       <p className="text-sm font-medium text-muted-foreground">Total Revenue</p>
-                      <p className="text-3xl font-bold text-foreground mt-3">${(stats.totalRevenue || 0).toLocaleString()}</p>
+                      <p className="text-3xl font-bold text-foreground mt-3">{"$" + (stats.totalRevenue || 0).toLocaleString()}</p>
                     </div>
                     <div className="p-3 bg-emerald-600/10 rounded-lg">
                       <DollarSign className="text-emerald-600" size={24} />
@@ -158,7 +158,7 @@ export default function DashboardPage() {
                 {/* Pending Payments */}
                 <Card className="p-6 hover:shadow-lg transition-shadow">
                   <p className="text-sm font-medium text-muted-foreground mb-2">Pending</p>
-                  <p className="text-2xl font-bold text-foreground">${(stats.pendingPayments || 0).toLocaleString()}</p>
+                  <p className="text-2xl font-bold text-foreground">{"$" + (stats.pendingPayments || 0).toLocaleString()}</p>
                   <p className="text-xs text-muted-foreground mt-2">Awaiting Payment</p>
                 </Card>
               </div>
@@ -195,35 +195,6 @@ export default function DashboardPage() {
               </Card>
             </>
           ) : null}
-        </div>
-      </DashboardLayout>
-    </ProtectedRoute>
-  );
-}
-                  </div>
-                </div>
-              </Card>
-            </div>
-          ) : null}
-
-          {/* Quick Actions */}
-          <div className="mt-12">
-            <h2 className="text-xl font-semibold text-gray-900 mb-6">Quick Actions</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <a
-                href="/clients/new"
-                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-4 rounded-lg transition font-medium text-center"
-              >
-                Add New Client
-              </a>
-              <a
-                href="/clients"
-                className="bg-gray-200 hover:bg-gray-300 text-gray-900 px-6 py-4 rounded-lg transition font-medium text-center"
-              >
-                Manage Clients
-              </a>
-            </div>
-          </div>
         </div>
       </DashboardLayout>
     </ProtectedRoute>
