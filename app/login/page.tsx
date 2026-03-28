@@ -22,7 +22,14 @@ export default function LoginPage() {
 
     try {
       await login(email, password);
-      router.push('/dashboard');
+      const storedUser = JSON.parse(localStorage.getItem('authUser') || '{}');
+      if (storedUser.role === 'admin') {
+        router.push('/admin/dashboard');
+      } else if (storedUser.role === 'manager') {
+        router.push('/manager/dashboard');
+      } else {
+        router.push('/employee/dashboard');
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');
     } finally {

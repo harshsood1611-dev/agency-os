@@ -8,6 +8,7 @@ interface User {
   firstName: string;
   lastName: string;
   agencyName: string;
+  role: 'admin' | 'manager' | 'employee' | 'client';
 }
 
 interface AuthContextType {

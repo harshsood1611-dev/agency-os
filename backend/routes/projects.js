@@ -3,6 +3,7 @@ import { body, query, validationResult, param } from 'express-validator';
 import Project from '../models/Project.js';
 import Task from '../models/Task.js';
 import { protect } from '../middleware/auth.js';
+import { requireManager } from '../middleware/role.js';
 
 const router = express.Router();
 
@@ -10,9 +11,20 @@ const router = express.Router();
 const verifyProjectOwnership = async (req, res, next) => {
   try {
     const project = await Project.findById(req.params.id);
-    if (!project || project.userId.toString() !== req.userId) {
+    if (!project) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+
+    const isAdmin = req.userRole === 'admin';
+    const isManager = req.userRole === 'manager';
+    const isEmployee = req.userRole === 'employee';
+    const projectOwner = project.userId.toString() === req.userId;
+    const assigned = (project.assignedTo || []).some((id) => id.toString() === req.userId);
+
+    if (!isAdmin && !projectOwner && !(isManager && assigned) && !(isEmployee && assigned)) {
       return res.status(403).json({ error: 'Not authorized' });
     }
+
     req.project = project;
     next();
   } catch (error) {
@@ -37,13 +49,24 @@ router.get('/', protect, [
     const { page = 1, limit = 10, search, status, clientId } = req.query;
     const skip = (page - 1) * limit;
 
-    // Build filter
-    const filter = { userId: req.userId };
+    // Build filter depending on role
+    let filter = {};
+    if (req.userRole === 'admin') {
+      filter = {};
+    } else if (req.userRole === 'manager') {
+      filter = { $or: [{ userId: req.userId }, { assignedTo: req.userId }] };
+    } else if (req.userRole === 'employee') {
+      filter = { assignedTo: req.userId };
+    } else {
+      filter = { userId: req.userId };
+    }
+
     if (search) {
-      filter.$or = [
+      filter.$or = filter.$or || [];
+      filter.$or.push(
         { name: { $regex: search, $options: 'i' } },
         { description: { $regex: search, $options: 'i' } }
-      ];
+      );
     }
     if (status) {
       filter.status = status;
@@ -86,8 +109,8 @@ router.get('/:id', protect, verifyProjectOwnership, async (req, res) => {
   }
 });
 
-// Create project
-router.post('/', protect, [
+// Create project (manager/admin)
+router.post('/', protect, requireManager, [
   body('name').trim().notEmpty().withMessage('Project name required'),
   body('clientId').trim().notEmpty().withMessage('Client required'),
   body('description').optional().trim(),
@@ -155,8 +178,8 @@ router.delete('/:id', protect, verifyProjectOwnership, async (req, res) => {
   }
 });
 
-// Assign user to project
-router.post('/:id/assign', protect, verifyProjectOwnership, [
+// Assign user to project (manager/admin)
+router.post('/:id/assign', protect, requireManager, verifyProjectOwnership, [
   body('userId').trim().notEmpty()
 ], async (req, res) => {
   const errors = validationResult(req);

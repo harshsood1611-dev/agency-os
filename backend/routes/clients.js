@@ -2,6 +2,7 @@ import express from 'express';
 import { body, query, validationResult } from 'express-validator';
 import Client from '../models/Client.js';
 import { protect } from '../middleware/auth.js';
+import { requireAdmin, requireManager } from '../middleware/role.js';
 
 const router = express.Router();
 
@@ -9,9 +10,20 @@ const router = express.Router();
 const verifyClientOwnership = async (req, res, next) => {
   try {
     const client = await Client.findById(req.params.id);
-    if (!client || client.userId.toString() !== req.userId) {
+    if (!client) {
+      return res.status(404).json({ error: 'Client not found' });
+    }
+
+    const isAdmin = req.userRole === 'admin';
+    const isManager = req.userRole === 'manager';
+    const isEmployee = req.userRole === 'employee';
+
+    const isOwner = client.userId.toString() === req.userId;
+
+    if (!isAdmin && !isOwner && !isManager) {
       return res.status(403).json({ error: 'Not authorized' });
     }
+
     req.client = client;
     next();
   } catch (error) {
@@ -35,14 +47,25 @@ router.get('/', protect, [
     const { page = 1, limit = 10, search, status } = req.query;
     const skip = (page - 1) * limit;
 
-    // Build filter
-    const filter = { userId: req.userId };
+    // Build filter based on role
+    let filter = {};
+    if (req.userRole === 'admin') {
+      filter = {};
+    } else if (req.userRole === 'manager') {
+      // manager: own clients + assigned clients (assumed assigned via userId in same agency)
+      filter = { userId: req.userId };
+    } else {
+      // employee: own clients assigned by owner (currently same as userId)
+      filter = { userId: req.userId };
+    }
+
     if (search) {
-      filter.$or = [
+      filter.$or = filter.$or || [];
+      filter.$or.push(
         { name: { $regex: search, $options: 'i' } },
         { email: { $regex: search, $options: 'i' } },
         { company: { $regex: search, $options: 'i' } }
-      ];
+      );
     }
     if (status) {
       filter.status = status;
@@ -81,8 +104,8 @@ router.get('/:id', protect, async (req, res) => {
   }
 });
 
-// Create client
-router.post('/', protect, [
+// Create client (manager / admin)
+router.post('/', protect, requireManager, [
   body('name').trim().notEmpty(),
   body('email').isEmail().normalizeEmail(),
   body('phone').optional().trim(),
@@ -143,8 +166,8 @@ router.put('/:id', protect, verifyClientOwnership, [
   }
 });
 
-// Delete client
-router.delete('/:id', protect, verifyClientOwnership, async (req, res) => {
+// Delete client (admin only)
+router.delete('/:id', protect, requireAdmin, verifyClientOwnership, async (req, res) => {
   try {
     await Client.findByIdAndDelete(req.params.id);
     res.json({ message: 'Client deleted' });

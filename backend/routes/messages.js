@@ -74,7 +74,17 @@ router.get('/project/:projectId', protect, [
 
     // Verify user has access to project
     const project = await Project.findById(req.params.projectId);
-    if (!project || project.userId.toString() !== req.userId) {
+    if (!project) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+
+    const isAdmin = req.userRole === 'admin';
+    const isManager = req.userRole === 'manager';
+    const isEmployee = req.userRole === 'employee';
+    const projectOwner = project.userId.toString() === req.userId;
+    const projectAssigned = (project.assignedTo || []).some((id) => id.toString() === req.userId);
+
+    if (!isAdmin && !projectOwner && !projectAssigned) {
       return res.status(403).json({ error: 'Not authorized' });
     }
 

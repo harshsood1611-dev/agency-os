@@ -40,17 +40,37 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     router.push('/login');
   };
 
-  const sidebarItems: SidebarItem[] = [
-    { icon: <LayoutDashboard size={20} />, label: 'Dashboard', href: '/dashboard' },
+  const adminItems: SidebarItem[] = [
+    { icon: <LayoutDashboard size={20} />, label: 'Dashboard', href: '/admin/dashboard' },
     { icon: <Users size={20} />, label: 'Clients', href: '/clients' },
     { icon: <Briefcase size={20} />, label: 'Projects', href: '/projects' },
     { icon: <User size={20} />, label: 'Employees', href: '/employees' },
     { icon: <TrendingUp size={20} />, label: 'OKRs', href: '/okr' },
-    { icon: <MessageSquare size={20} />, label: 'Messages', href: '/messages' },
+    { icon: <MessageSquare size={20} />, label: 'Chat', href: '/messages' },
     { icon: <FileText size={20} />, label: 'Documents', href: '/documents' },
     { icon: <DollarSign size={20} />, label: 'Billing', href: '/revenue' },
-    { icon: <TrendingUp size={20} />, label: 'Analytics', href: '/analytics' },
+    { icon: <TrendingUp size={20} />, label: 'Analytics', href: '/analytics' }
   ];
+
+  const managerItems: SidebarItem[] = [
+    { icon: <LayoutDashboard size={20} />, label: 'Dashboard', href: '/manager/dashboard' },
+    { icon: <Users size={20} />, label: 'Clients', href: '/clients' },
+    { icon: <Briefcase size={20} />, label: 'Projects', href: '/projects' },
+    { icon: <TrendingUp size={20} />, label: 'Tasks', href: '/projects' },
+    { icon: <User size={20} />, label: 'Team', href: '/employees' },
+    { icon: <MessageSquare size={20} />, label: 'Chat', href: '/messages' }
+  ];
+
+  const employeeItems: SidebarItem[] = [
+    { icon: <LayoutDashboard size={20} />, label: 'Dashboard', href: '/employee/dashboard' },
+    { icon: <Briefcase size={20} />, label: 'My Projects', href: '/projects' },
+    { icon: <TrendingUp size={20} />, label: 'My Tasks', href: '/projects/tasks' },
+    { icon: <MessageSquare size={20} />, label: 'Chat', href: '/messages' }
+  ];
+
+  const sidebarItems: SidebarItem[] =
+    user?.role === 'admin' ? adminItems :
+    user?.role === 'manager' ? managerItems : employeeItems;
 
   const secondaryItems: SidebarItem[] = [
     { icon: <Bell size={20} />, label: 'Notifications', href: '/notifications' },

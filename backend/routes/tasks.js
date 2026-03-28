@@ -3,6 +3,7 @@ import { body, query, validationResult } from 'express-validator';
 import Task from '../models/Task.js';
 import Project from '../models/Project.js';
 import { protect } from '../middleware/auth.js';
+import { requireManager, requireEmployee } from '../middleware/role.js';
 
 const router = express.Router();
 
@@ -15,7 +16,19 @@ const verifyTaskAccess = async (req, res, next) => {
     }
 
     const project = await Project.findById(task.projectId);
-    if (!project || project.userId.toString() !== req.userId) {
+    if (!project) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+
+    const isAdmin = req.userRole === 'admin';
+    const isManager = req.userRole === 'manager';
+    const isEmployee = req.userRole === 'employee';
+
+    const isProjectOwner = project.userId.toString() === req.userId;
+    const isProjectAssignee = project.assignedTo?.some(id => id.toString() === req.userId);
+    const isTaskAssignee = task.assignedTo?.toString() === req.userId || (Array.isArray(task.assignedTo) && task.assignedTo.some(id => id.toString() === req.userId));
+
+    if (!isAdmin && !isProjectOwner && !(isManager && isProjectAssignee) && !(isEmployee && isTaskAssignee)) {
       return res.status(403).json({ error: 'Not authorized' });
     }
 
@@ -44,11 +57,24 @@ router.get('/', protect, [
     const { page = 1, limit = 10, projectId, status, priority } = req.query;
     const skip = (page - 1) * limit;
 
-    // Build filter - get projects owned by user first
-    const userProjects = await Project.find({ userId: req.userId }, '_id');
-    const projectIds = userProjects.map(p => p._id);
-
-    const filter = { projectId: { $in: projectIds } };
+    // Build filter based on role
+    let filter = {};
+    if (req.userRole === 'admin') {
+      filter = {};
+    } else if (req.userRole === 'manager') {
+      const userProjects = await Project.find({ $or: [{ userId: req.userId }, { assignedTo: req.userId }] }, '_id');
+      const projectIds = userProjects.map(p => p._id);
+      filter = { projectId: { $in: projectIds } };
+    } else {
+      const userProjects = await Project.find({ assignedTo: req.userId }, '_id');
+      const projectIds = userProjects.map(p => p._id);
+      filter = {
+        $or: [
+          { assignedTo: req.userId },
+          ...(projectIds.length ? [{ projectId: { $in: projectIds } }] : [])
+        ]
+      };
+    }
     if (projectId) {
       filter.projectId = projectId;
     }
@@ -86,7 +112,15 @@ router.get('/', protect, [
 router.get('/project/:projectId/kanban', protect, async (req, res) => {
   try {
     const project = await Project.findById(req.params.projectId);
-    if (!project || project.userId.toString() !== req.userId) {
+    if (!project) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+
+    const isAdmin = req.userRole === 'admin';
+    const projectOwner = project.userId.toString() === req.userId;
+    const projectAssigned = (project.assignedTo || []).some((id) => id.toString() === req.userId);
+
+    if (!isAdmin && !projectOwner && !projectAssigned) {
       return res.status(403).json({ error: 'Not authorized' });
     }
 
@@ -126,8 +160,8 @@ router.get('/:id', protect, verifyTaskAccess, async (req, res) => {
   }
 });
 
-// Create task
-router.post('/', protect, [
+// Create task (manager/admin)
+router.post('/', protect, requireManager, [
   body('title').trim().notEmpty().withMessage('Task title required'),
   body('projectId').trim().notEmpty().withMessage('Project required'),
   body('description').optional().trim(),
@@ -175,6 +209,18 @@ router.put('/:id', protect, verifyTaskAccess, [
 
   try {
     const task = req.task;
+    const isAdmin = req.userRole === 'admin';
+    const isManager = req.userRole === 'manager';
+    const isEmployee = req.userRole === 'employee';
+
+    if (isEmployee) {
+      const allowedFields = ['status', 'comments'];
+      const updateFields = Object.keys(req.body);
+      const notAllowed = updateFields.filter((field) => !allowedFields.includes(field));
+      if (notAllowed.length > 0) {
+        return res.status(403).json({ error: 'Employee cannot modify this field' });
+      }
+    }
 
     // If status is completed, set completedAt
     if (req.body.status === 'Completed' && task.status !== 'Completed') {

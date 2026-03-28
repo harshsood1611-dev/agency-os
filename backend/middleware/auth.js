@@ -1,6 +1,7 @@
 import jwt from 'jsonwebtoken';
+import User from '../models/User.js';
 
-export const protect = (req, res, next) => {
+export const protect = async (req, res, next) => {
   const token = req.headers.authorization?.split(' ')[1];
 
   if (!token) {
@@ -11,10 +12,13 @@ export const protect = (req, res, next) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     req.userId = decoded.userId;
 
-    // Optionally include role to speed permissions in routes
     if (decoded.role) {
       req.userRole = decoded.role;
-    }
+    } else {
+      const user = await User.findById(req.userId).select('role');
+      if (user) {
+        req.userRole = user.role;
+      }
 
     next();
   } catch (error) {
