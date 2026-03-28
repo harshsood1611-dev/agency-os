@@ -19,6 +19,7 @@ export const protect = async (req, res, next) => {
       if (user) {
         req.userRole = user.role;
       }
+    }
 
     next();
   } catch (error) {
