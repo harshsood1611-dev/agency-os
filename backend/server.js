@@ -2,10 +2,21 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import mongoose from 'mongoose';
+import http from 'http';
+import { Server } from 'socket.io';
 
 dotenv.config();
 
 const app = express();
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    methods: ['GET', 'POST'],
+    credentials: true
+  }
+});
+
 const PORT = process.env.PORT || 5000;
 
 // Middleware
@@ -50,6 +61,13 @@ import messageRoutes from './routes/messages.js';
 import invoiceRoutes from './routes/invoices.js';
 import documentRoutes from './routes/documents.js';
 import notificationRoutes from './routes/notifications.js';
+import dashboardRoutes from './routes/dashboard.js';
+import okrRoutes from './routes/okr.js';
+import checkinRoutes from './routes/checkins.js';
+import employeeRoutes from './routes/employees.js';
+import attendanceRoutes from './routes/attendance.js';
+import leavesRoutes from './routes/leaves.js';
+import rewardsRoutes from './routes/rewards.js';
 
 app.use('/api/auth', authRoutes);
 app.use('/api/clients', clientRoutes);
@@ -59,6 +77,13 @@ app.use('/api/messages', messageRoutes);
 app.use('/api/invoices', invoiceRoutes);
 app.use('/api/documents', documentRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/okr', okrRoutes);
+app.use('/api/checkins', checkinRoutes);
+app.use('/api/employees', employeeRoutes);
+app.use('/api/attendance', attendanceRoutes);
+app.use('/api/leaves', leavesRoutes);
+app.use('/api/rewards', rewardsRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
@@ -66,6 +91,27 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: err.message || 'Server error' });
 });
 
-app.listen(PORT, () => {
+io.on('connection', (socket) => {
+  console.log('Socket.io connected', socket.id);
+
+  socket.on('joinRoom', ({ roomId }) => {
+    socket.join(roomId);
+  });
+
+  socket.on('leaveRoom', ({ roomId }) => {
+    socket.leave(roomId);
+  });
+
+  socket.on('sendMessage', (message) => {
+    // message should include roomId and payload
+    io.to(message.roomId).emit('receiveMessage', message);
+  });
+
+  socket.on('disconnect', () => {
+    console.log('Socket.io disconnected', socket.id);
+  });
+});
+
+server.listen(PORT, () => {
   console.log(`Backend server running on port ${PORT}`);
 });

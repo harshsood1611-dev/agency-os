@@ -24,7 +24,7 @@ router.get('/', protect, [
   query('page').optional().isInt({ min: 1 }).toInt(),
   query('limit').optional().isInt({ min: 1, max: 100 }).toInt(),
   query('search').optional().trim(),
-  query('status').optional().isIn(['active', 'inactive', 'prospect'])
+  query('status').optional().isIn(['lead', 'prospect', 'active', 'inactive'])
 ], async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -87,7 +87,7 @@ router.post('/', protect, [
   body('email').isEmail().normalizeEmail(),
   body('phone').optional().trim(),
   body('company').optional().trim(),
-  body('status').optional().isIn(['active', 'inactive', 'prospect']),
+  body('status').optional().isIn(['lead', 'prospect', 'active', 'inactive']),
   body('rate').optional().isFloat({ min: 0 }),
   body('address').optional().trim(),
   body('city').optional().trim(),
@@ -119,7 +119,7 @@ router.put('/:id', protect, verifyClientOwnership, [
   body('email').optional().isEmail().normalizeEmail(),
   body('phone').optional().trim(),
   body('company').optional().trim(),
-  body('status').optional().isIn(['active', 'inactive', 'prospect']),
+  body('status').optional().isIn(['lead', 'prospect', 'active', 'inactive']),
   body('rate').optional().isFloat({ min: 0 }),
   body('address').optional().trim(),
   body('city').optional().trim(),
@@ -165,11 +165,16 @@ router.get('/stats/overview', protect, async (req, res) => {
       userId: req.userId,
       status: 'prospect'
     });
+    const leads = await Client.countDocuments({
+      userId: req.userId,
+      status: 'lead'
+    });
 
     res.json({
       totalClients,
       activeClients,
-      prospects
+      prospects,
+      leads
     });
   } catch (error) {
     res.status(500).json({ error: error.message });

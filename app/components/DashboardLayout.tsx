@@ -44,9 +44,11 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     { icon: <LayoutDashboard size={20} />, label: 'Dashboard', href: '/dashboard' },
     { icon: <Users size={20} />, label: 'Clients', href: '/clients' },
     { icon: <Briefcase size={20} />, label: 'Projects', href: '/projects' },
+    { icon: <User size={20} />, label: 'Employees', href: '/employees' },
+    { icon: <TrendingUp size={20} />, label: 'OKRs', href: '/okr' },
     { icon: <MessageSquare size={20} />, label: 'Messages', href: '/messages' },
     { icon: <FileText size={20} />, label: 'Documents', href: '/documents' },
-    { icon: <DollarSign size={20} />, label: 'Revenue', href: '/revenue' },
+    { icon: <DollarSign size={20} />, label: 'Billing', href: '/revenue' },
     { icon: <TrendingUp size={20} />, label: 'Analytics', href: '/analytics' },
   ];
 

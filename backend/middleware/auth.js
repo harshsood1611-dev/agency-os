@@ -10,14 +10,20 @@ export const protect = (req, res, next) => {
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     req.userId = decoded.userId;
+
+    // Optionally include role to speed permissions in routes
+    if (decoded.role) {
+      req.userRole = decoded.role;
+    }
+
     next();
   } catch (error) {
     res.status(401).json({ error: 'Invalid token' });
   }
 };
 
-export const generateToken = (userId) => {
-  return jwt.sign({ userId }, process.env.JWT_SECRET, {
+export const generateToken = (payload) => {
+  return jwt.sign(payload, process.env.JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRE || '7d'
   });
 };

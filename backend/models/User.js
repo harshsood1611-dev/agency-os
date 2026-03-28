@@ -29,6 +29,35 @@ const userSchema = new mongoose.Schema({
     type: String,
     default: ''
   },
+  role: {
+    type: String,
+    enum: ['admin', 'manager', 'employee', 'client'],
+    default: 'employee'
+  },
+  permissions: [{
+    type: String
+  }],
+  avatarUrl: {
+    type: String,
+    default: ''
+  },
+  status: {
+    type: String,
+    enum: ['active', 'inactive', 'on_leave', 'terminated'],
+    default: 'active'
+  },
+  performance: {
+    kpis: [{
+      metric: String,
+      target: Number,
+      achieved: Number,
+      period: String
+    }],
+    completionRate: {
+      type: Number,
+      default: 0
+    }
+  },
   createdAt: {
     type: Date,
     default: Date.now

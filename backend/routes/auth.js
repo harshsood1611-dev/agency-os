@@ -11,7 +11,8 @@ router.post('/register', [
   body('password').isLength({ min: 6 }),
   body('firstName').trim().notEmpty(),
   body('lastName').trim().notEmpty(),
-  body('agencyName').trim().notEmpty()
+  body('agencyName').trim().notEmpty(),
+  body('role').optional().isIn(['admin', 'manager', 'employee', 'client'])
 ], async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -27,19 +28,23 @@ router.post('/register', [
       return res.status(400).json({ error: 'User already exists' });
     }
 
-    // Create user
+    // Create user, assign role
+    const isFirstUser = (await User.countDocuments({})) === 0;
+    const role = isFirstUser ? 'admin' : (req.body.role || 'employee');
+
     user = new User({
       email,
       password,
       firstName,
       lastName,
-      agencyName
+      agencyName,
+      role
     });
 
     await user.save();
 
-    // Generate token
-    const token = generateToken(user._id);
+    // Generate token including role
+    const token = generateToken({ userId: user._id, role: user.role });
 
     res.status(201).json({
       token,
@@ -48,7 +53,8 @@ router.post('/register', [
         email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,
-        agencyName: user.agencyName
+        agencyName: user.agencyName,
+        role: user.role
       }
     });
   } catch (error) {
@@ -81,8 +87,8 @@ router.post('/login', [
       return res.status(400).json({ error: 'Invalid credentials' });
     }
 
-    // Generate token
-    const token = generateToken(user._id);
+    // Generate token including role
+    const token = generateToken({ userId: user._id, role: user.role });
 
     res.json({
       token,
@@ -91,7 +97,8 @@ router.post('/login', [
         email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,
-        agencyName: user.agencyName
+        agencyName: user.agencyName,
+        role: user.role
       }
     });
   } catch (error) {

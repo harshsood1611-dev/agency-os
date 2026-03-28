@@ -27,9 +27,18 @@ const clientSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['active', 'inactive', 'prospect'],
-    default: 'active'
+    enum: ['lead', 'prospect', 'active', 'inactive'],
+    default: 'lead'
   },
+  leadSource: {
+    type: String,
+    default: 'Website'
+  },
+  conversionDate: Date,
+  assignedTo: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  }],
   rate: {
     type: Number,
     default: 0
@@ -54,6 +63,14 @@ const clientSchema = new mongoose.Schema({
     type: String,
     default: ''
   },
+  attachments: [{
+    fileName: String,
+    fileUrl: String,
+    uploadedAt: {
+      type: Date,
+      default: Date.now
+    }
+  }],
   createdAt: {
     type: Date,
     default: Date.now
