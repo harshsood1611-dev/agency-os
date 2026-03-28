@@ -51,6 +51,29 @@ const taskSchema = new mongoose.Schema({
       default: Date.now
     }
   }],
+  subtasks: [{
+    title: String,
+    status: {
+      type: String,
+      enum: ['New', 'In Progress', 'Completed', 'Blocked'],
+      default: 'New'
+    },
+    assignedTo: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User'
+    },
+    dueDate: Date,
+    completedAt: Date
+  }],
+  recurring: {
+    interval: {
+      type: String,
+      enum: ['Daily', 'Weekly', 'Biweekly', 'Monthly', 'Quarterly', 'Yearly', 'None'],
+      default: 'None'
+    },
+    nextDueDate: Date,
+    endDate: Date
+  },
   attachments: [{
     fileName: String,
     fileUrl: String,
