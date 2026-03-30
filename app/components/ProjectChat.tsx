@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { io, Socket } from 'socket.io-client';
 import { useAuth } from '@/app/context/AuthContext';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -41,7 +40,7 @@ export function ProjectChat({ projectId }: ChatProps) {
 
   // Fetch messages and initialize WebSocket
   useEffect(() => {
-    let socket: Socket | null = null;
+    let socket: any = null;
 
     const fetchMessages = async () => {
       if (!token) return;
@@ -71,12 +70,27 @@ export function ProjectChat({ projectId }: ChatProps) {
 
     fetchMessages();
 
-    const SOCKET_URL = process.env.NEXT_PUBLIC_API_BASE_URL?.replace('/api', '') || 'http://localhost:5000';
-    socket = io(SOCKET_URL, { transports: ['websocket'] });
+    const setupSocket = async () => {
+      try {
+        const { io } = await import('socket.io-client');
+        const SOCKET_URL = process.env.NEXT_PUBLIC_API_BASE_URL?.replace('/api', '') || 'http://localhost:5000';
+        socket = io(SOCKET_URL, { transports: ['websocket'] });
 
-    socket.on('connect', () => {
-      socket?.emit('joinRoom', { roomId: `project_${projectId}` });
-    });
+        socket.on('connect', () => {
+          socket?.emit('joinRoom', { roomId: `project_${projectId}` });
+        });
+
+        socket.on('receiveMessage', (message: any) => {
+          if (message.projectId === projectId && message.chatType === 'project-group') {
+            setMessages((prev) => [...prev, message]);
+          }
+        });
+      } catch (err) {
+        console.error('Socket connection failed', err);
+      }
+    };
+
+    setupSocket();
 
     socket.on('receiveMessage', (message) => {
       if (message.projectId === projectId && message.chatType === 'project-group') {

@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { io, Socket } from 'socket.io-client';
 import { useAuth } from '@/app/context/AuthContext';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -39,7 +38,7 @@ export function DirectChat({ otherUserId }: DirectChatProps) {
   }, [messages]);
 
   useEffect(() => {
-    let socket: Socket | null = null;
+    let socket: any = null;
 
     const fetchMessages = async () => {
       if (!token) return;
@@ -59,19 +58,28 @@ export function DirectChat({ otherUserId }: DirectChatProps) {
 
     fetchMessages();
 
-    const SOCKET_URL = process.env.NEXT_PUBLIC_API_BASE_URL?.replace('/api', '') || 'http://localhost:5000';
-    socket = io(SOCKET_URL, { transports: ['websocket'] });
+    const initSocket = async () => {
+      try {
+        const { io } = await import('socket.io-client');
+        const SOCKET_URL = process.env.NEXT_PUBLIC_API_BASE_URL?.replace('/api', '') || 'http://localhost:5000';
+        socket = io(SOCKET_URL, { transports: ['websocket'] });
 
-    socket.on('connect', () => {
-      socket?.emit('joinRoom', { roomId });
-      socket?.emit('joinRoom', { roomId: `direct_${otherUserId}_${user?.id}` });
-    });
+        socket.on('connect', () => {
+          socket?.emit('joinRoom', { roomId });
+          socket?.emit('joinRoom', { roomId: `direct_${otherUserId}_${user?.id}` });
+        });
 
-    socket.on('receiveMessage', (message: Message) => {
-      if (message.chatType === 'direct' && (message.senderId._id === otherUserId || message.recipientId === otherUserId)) {
-        setMessages(prev => [...prev, message]);
+        socket.on('receiveMessage', (message: Message) => {
+          if (message.chatType === 'direct' && (message.senderId._id === otherUserId || message.recipientId === otherUserId)) {
+            setMessages(prev => [...prev, message]);
+          }
+        });
+      } catch (err) {
+        console.error('Socket.io init failed', err);
       }
-    });
+    };
+
+    initSocket();
 
     return () => {
       if (socket) {
