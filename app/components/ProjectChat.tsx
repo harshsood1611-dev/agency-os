@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { io, Socket } from 'socket.io-client';
 import { useAuth } from '@/app/context/AuthContext';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -38,8 +39,10 @@ export function ProjectChat({ projectId }: ChatProps) {
     scrollToBottom();
   }, [messages]);
 
-  // Fetch messages
+  // Fetch messages and initialize WebSocket
   useEffect(() => {
+    let socket: Socket | null = null;
+
     const fetchMessages = async () => {
       if (!token) return;
 
@@ -68,9 +71,25 @@ export function ProjectChat({ projectId }: ChatProps) {
 
     fetchMessages();
 
-    // Poll for new messages every 2 seconds (in production, use WebSockets)
-    const interval = setInterval(fetchMessages, 2000);
-    return () => clearInterval(interval);
+    const SOCKET_URL = process.env.NEXT_PUBLIC_API_BASE_URL?.replace('/api', '') || 'http://localhost:5000';
+    socket = io(SOCKET_URL, { transports: ['websocket'] });
+
+    socket.on('connect', () => {
+      socket?.emit('joinRoom', { roomId: `project_${projectId}` });
+    });
+
+    socket.on('receiveMessage', (message) => {
+      if (message.projectId === projectId && message.chatType === 'project-group') {
+        setMessages((prev) => [...prev, message]);
+      }
+    });
+
+    return () => {
+      if (socket) {
+        socket.emit('leaveRoom', { roomId: `project_${projectId}` });
+        socket.disconnect();
+      }
+    };
   }, [projectId, token]);
 
   const handleSendMessage = async (e: React.FormEvent) => {

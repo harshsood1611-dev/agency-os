@@ -2,6 +2,7 @@ import express from 'express';
 import { body, query, validationResult } from 'express-validator';
 import Task from '../models/Task.js';
 import Project from '../models/Project.js';
+import Notification from '../models/Notification.js';
 import { protect } from '../middleware/auth.js';
 import { requireManager, requireEmployee } from '../middleware/role.js';
 
@@ -188,6 +189,19 @@ router.post('/', protect, requireManager, [
 
     await task.save();
     await task.populate('projectId', 'name');
+
+    // Send task assignment notification
+    if (task.assignedTo) {
+      await Notification.create({
+        userId: task.assignedTo,
+        type: 'task_assigned',
+        title: `New task assigned: ${task.title}`,
+        message: `You have been assigned to task ${task.title} in project ${task.projectId.name}`,
+        relatedId: task._id,
+        relatedType: 'Task'
+      });
+    }
+
     res.status(201).json(task);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -213,6 +227,9 @@ router.put('/:id', protect, verifyTaskAccess, [
     const isManager = req.userRole === 'manager';
     const isEmployee = req.userRole === 'employee';
 
+    const previousAssignedTo = task.assignedTo?.toString();
+    const previousStatus = task.status;
+
     if (isEmployee) {
       const allowedFields = ['status', 'comments'];
       const updateFields = Object.keys(req.body);
@@ -230,7 +247,34 @@ router.put('/:id', protect, verifyTaskAccess, [
     Object.assign(task, req.body);
     task.updatedAt = new Date();
     await task.save();
+
     await task.populate('assignedTo', 'firstName lastName email');
+    await task.populate('projectId', 'name');
+
+    // Notifications on assignment change
+    if (req.body.assignedTo && req.body.assignedTo.toString() !== previousAssignedTo) {
+      await Notification.create({
+        userId: req.body.assignedTo,
+        type: 'task_assigned',
+        title: `Assigned to task: ${task.title}`,
+        message: `You are now assigned to task ${task.title} in project ${task.projectId.name}`,
+        relatedId: task._id,
+        relatedType: 'Task'
+      });
+    }
+
+    // Notifications on status change to completed
+    if (req.body.status === 'Completed' && previousStatus !== 'Completed') {
+      await Notification.create({
+        userId: task.assignedTo ? task.assignedTo._id : task.userId,
+        type: 'task_completed',
+        title: `Task completed: ${task.title}`,
+        message: `Task ${task.title} is marked completed`,
+        relatedId: task._id,
+        relatedType: 'Task'
+      });
+    }
+
     res.json(task);
   } catch (error) {
     res.status(500).json({ error: error.message });

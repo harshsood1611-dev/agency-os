@@ -52,6 +52,9 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'Backend is running' });
 });
 
+// make socket object available to routes
+app.set('io', io);
+
 // Routes
 import authRoutes from './routes/auth.js';
 import clientRoutes from './routes/clients.js';
@@ -61,6 +64,7 @@ import messageRoutes from './routes/messages.js';
 import invoiceRoutes from './routes/invoices.js';
 import documentRoutes from './routes/documents.js';
 import notificationRoutes from './routes/notifications.js';
+import settingsRoutes from './routes/settings.js';
 import dashboardRoutes from './routes/dashboard.js';
 import okrRoutes from './routes/okr.js';
 import checkinRoutes from './routes/checkins.js';
@@ -77,6 +81,7 @@ app.use('/api/messages', messageRoutes);
 app.use('/api/invoices', invoiceRoutes);
 app.use('/api/documents', documentRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/settings', settingsRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/okr', okrRoutes);
 app.use('/api/checkins', checkinRoutes);

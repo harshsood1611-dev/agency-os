@@ -2,6 +2,7 @@ import express from 'express';
 import { body, query, validationResult, param } from 'express-validator';
 import Project from '../models/Project.js';
 import Task from '../models/Task.js';
+import Notification from '../models/Notification.js';
 import { protect } from '../middleware/auth.js';
 import { requireManager } from '../middleware/role.js';
 
@@ -192,6 +193,16 @@ router.post('/:id/assign', protect, requireManager, verifyProjectOwnership, [
     if (!project.assignedTo.includes(req.body.userId)) {
       project.assignedTo.push(req.body.userId);
       await project.save();
+
+      // Notify assigned user
+      await Notification.create({
+        userId: req.body.userId,
+        type: 'project_update',
+        title: `Project assignment: ${project.name}`,
+        message: `You have been assigned to project ${project.name}`,
+        relatedId: project._id,
+        relatedType: 'Project'
+      });
     }
     await project.populate('assignedTo', 'firstName lastName email');
     res.json(project);

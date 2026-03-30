@@ -6,8 +6,8 @@ import { requireAdmin, requireManager } from '../middleware/role.js';
 
 const router = express.Router();
 
-// get all employees (admin/manager)
-router.get('/', protect, requireManager, async (req, res) => {
+// get all employees (admin only)
+router.get('/', protect, requireAdmin, async (req, res) => {
   try {
     const employees = await User.find({ role: { $in: ['manager', 'employee'] } }).select('-password');
     res.json(employees);
@@ -16,26 +16,9 @@ router.get('/', protect, requireManager, async (req, res) => {
   }
 });
 
-// get employee by id
-router.get('/:id', protect, async (req, res) => {
+// get employee by id (admin only)
+router.get('/:id', protect, requireAdmin, async (req, res) => {
   try {
-    const requestingUser = await User.findById(req.userId);
-    if (!requestingUser) {
-      return res.status(401).json({ error: 'Not authorized' });
-    }
-
-    if (requestingUser.role === 'employee' && req.params.id !== req.userId) {
-      return res.status(403).json({ error: 'Not authorized' });
-    }
-
-    if (requestingUser.role === 'manager' && requestingUser._id.toString() !== req.params.id) {
-      // manager can see own profile or employee profile not others not in team (for now, limited)
-      const employee = await User.findById(req.params.id);
-      if (!employee || employee.role !== 'employee') {
-        return res.status(403).json({ error: 'Not authorized' });
-      }
-    }
-
     const employee = await User.findById(req.params.id).select('-password');
     if (!employee) {
       return res.status(404).json({ error: 'Employee not found' });
