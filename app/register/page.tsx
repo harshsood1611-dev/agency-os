@@ -13,6 +13,7 @@ export default function RegisterPage() {
     lastName: '',
     email: '',
     agencyName: '',
+    role: 'employee',
     password: '',
     confirmPassword: ''
   });
@@ -31,7 +32,7 @@ export default function RegisterPage() {
     setError('');
 
     // Validation
-    if (!formData.firstName || !formData.lastName || !formData.email || !formData.agencyName || !formData.password) {
+    if (!formData.firstName || !formData.lastName || !formData.email || !formData.agencyName || !formData.password || !formData.role) {
       setError('All fields are required');
       return;
     }
@@ -54,7 +55,8 @@ export default function RegisterPage() {
         formData.password,
         formData.firstName,
         formData.lastName,
-        formData.agencyName
+        formData.agencyName,
+        formData.role as 'admin' | 'manager' | 'employee' | 'client'
       );
       router.push('/dashboard');
     } catch (err) {
@@ -141,6 +143,25 @@ export default function RegisterPage() {
                 placeholder="Your Agency Name"
                 required
               />
+            </div>
+
+            <div>
+              <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-2">
+                Role
+              </label>
+              <select
+                id="role"
+                name="role"
+                value={formData.role}
+                onChange={(e) => setFormData(prev => ({ ...prev, role: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+              >
+                <option value="employee">Employee</option>
+                <option value="manager">Manager</option>
+                <option value="admin">Admin</option>
+                <option value="client">Client</option>
+              </select>
             </div>
 
             <div>

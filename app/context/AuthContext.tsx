@@ -16,7 +16,7 @@ interface AuthContextType {
   token: string | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, firstName: string, lastName: string, agencyName: string) => Promise<void>;
+  register: (email: string, password: string, firstName: string, lastName: string, agencyName: string, role?: 'admin' | 'manager' | 'employee' | 'client') => Promise<void>;
   logout: () => void;
   isAuthenticated: boolean;
 }
@@ -63,12 +63,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     password: string,
     firstName: string,
     lastName: string,
-    agencyName: string
+    agencyName: string,
+    role: 'admin' | 'manager' | 'employee' | 'client' = 'employee'
   ) => {
     const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000'}/api/auth/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password, firstName, lastName, agencyName })
+      body: JSON.stringify({ email, password, firstName, lastName, agencyName, role })
     });
 
     if (!response.ok) {
