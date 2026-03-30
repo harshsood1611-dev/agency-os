@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { ProtectedRoute } from '@/app/components/ProtectedRoute';
 import { DashboardLayout } from '@/app/components/DashboardLayout';
 import { KanbanBoard } from '@/app/components/KanbanBoard';
+import { ProjectChat } from '@/app/components/ProjectChat';
 import { useAuth } from '@/app/context/AuthContext';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
@@ -336,9 +337,17 @@ export default function ProjectTasksPage() {
             )}
           </Card>
 
-          <Card>
-            <KanbanBoard projectId={projectId} />
-          </Card>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <Card className="p-4">
+              <h3 className="text-lg font-semibold mb-3">Task Kanban</h3>
+              <KanbanBoard projectId={projectId} />
+            </Card>
+
+            <Card className="p-4 h-full">
+              <h3 className="text-lg font-semibold mb-3">Project Group Chat</h3>
+              <ProjectChat projectId={projectId} />
+            </Card>
+          </div>
         </div>
       </DashboardLayout>
     </ProtectedRoute>
