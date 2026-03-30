@@ -1,6 +1,7 @@
 import express from 'express';
 import { body, param, query, validationResult } from 'express-validator';
 import Notification from '../models/Notification.js';
+import User from '../models/User.js';
 import { protect } from '../middleware/auth.js';
 
 const router = express.Router();
@@ -58,7 +59,23 @@ router.get('/:id', protect, async (req, res) => {
 router.post('/', protect, async (req, res) => {
   try {
     const { userId, type, title, message, relatedId, relatedType } = req.body;
+// Allow manager/admin to send global notifications when userId is not provided
+    if (!userId) {
+      const users = await User.find({}, '_id');
+      const notifications = await Notification.insertMany(
+        users.map(u => ({
+          userId: u._id,
+          type,
+          title,
+          message,
+          relatedId,
+          relatedType
+        }))
+      );
+      return res.status(201).json(notifications);
+    }
 
+    
     const notification = new Notification({
       userId,
       type,

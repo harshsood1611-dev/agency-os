@@ -119,7 +119,9 @@ router.post('/', protect, requireManager, [
   body('startDate').optional().isISO8601().toDate(),
   body('dueDate').optional().isISO8601().toDate(),
   body('budget').optional().isFloat({ min: 0 }),
-  body('priority').optional().isIn(['Low', 'Medium', 'High', 'Critical'])
+  body('priority').optional().isIn(['Low', 'Medium', 'High', 'Critical']),
+  body('assignedTo').optional().isArray(),
+  body('assignedTo.*').optional().isMongoId()
 ], async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -148,7 +150,9 @@ router.put('/:id', protect, verifyProjectOwnership, [
   body('startDate').optional().isISO8601().toDate(),
   body('dueDate').optional().isISO8601().toDate(),
   body('budget').optional().isFloat({ min: 0 }),
-  body('priority').optional().isIn(['Low', 'Medium', 'High', 'Critical'])
+  body('priority').optional().isIn(['Low', 'Medium', 'High', 'Critical']),
+  body('assignedTo').optional().isArray(),
+  body('assignedTo.*').optional().isMongoId()
 ], async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {

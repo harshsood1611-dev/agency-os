@@ -77,7 +77,7 @@ export function ProjectChat({ projectId }: ChatProps) {
         socket = io(SOCKET_URL, { transports: ['websocket'] });
 
         socket.on('connect', () => {
-          socket?.emit('joinRoom', { roomId: `project_${projectId}` });
+          socket.emit('joinRoom', { roomId: `project_${projectId}` });
         });
 
         socket.on('receiveMessage', (message: any) => {
@@ -91,12 +91,6 @@ export function ProjectChat({ projectId }: ChatProps) {
     };
 
     setupSocket();
-
-    socket.on('receiveMessage', (message) => {
-      if (message.projectId === projectId && message.chatType === 'project-group') {
-        setMessages((prev) => [...prev, message]);
-      }
-    });
 
     return () => {
       if (socket) {

@@ -49,9 +49,14 @@ export function TaskForm({ projectId, taskId, onSuccess }: TaskFormProps) {
       if (!token) return;
 
       try {
-        // For now, we'll use a placeholder for fetching team members
-        // In a real app, you'd have an endpoint to get all users in the organization
-        // setUsers([]); // TODO: Fetch team members
+        // Fetch team members to assign task
+        const usersRes = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000'}/api/employees`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (usersRes.ok) {
+          const usersData = await usersRes.json();
+          setUsers(usersData);
+        }
 
         // If editing, fetch the task
         if (taskId) {

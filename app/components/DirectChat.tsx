@@ -12,6 +12,7 @@ interface Message {
   recipientId: string;
   text: string;
   createdAt: string;
+  chatType?: 'direct' | 'project-group';
 }
 
 interface DirectChatProps {

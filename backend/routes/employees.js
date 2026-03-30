@@ -6,8 +6,8 @@ import { requireAdmin, requireManager } from '../middleware/role.js';
 
 const router = express.Router();
 
-// get all employees (admin only)
-router.get('/', protect, requireAdmin, async (req, res) => {
+// get all employees (admin/manager)
+router.get('/', protect, requireManager, async (req, res) => {
   try {
     const employees = await User.find({ role: { $in: ['manager', 'employee'] } }).select('-password');
     res.json(employees);
@@ -16,8 +16,8 @@ router.get('/', protect, requireAdmin, async (req, res) => {
   }
 });
 
-// get employee by id (admin only)
-router.get('/:id', protect, requireAdmin, async (req, res) => {
+// get employee by id (admin/manager)
+router.get('/:id', protect, requireManager, async (req, res) => {
   try {
     const employee = await User.findById(req.params.id).select('-password');
     if (!employee) {

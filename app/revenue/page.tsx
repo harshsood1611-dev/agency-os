@@ -5,6 +5,7 @@ import { useAuth } from '@/app/context/AuthContext';
 import { ProtectedRoute } from '@/app/components/ProtectedRoute';
 import { DashboardLayout } from '@/app/components/DashboardLayout';
 import { Card } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { DollarSign, FileText, TrendingUp, AlertCircle, Plus } from 'lucide-react';
 import Link from 'next/link';
 
@@ -14,7 +15,9 @@ interface Invoice {
   amount: number;
   status: 'Draft' | 'Sent' | 'Paid' | 'Overdue' | 'Cancelled';
   dueDate: string;
-  clientId: { name: string };
+  clientId: { _id: string; name: string };
+  projectId?: { _id: string; name: string };
+  description?: string;
 }
 
 interface RevenueStats {
@@ -32,6 +35,18 @@ export default function RevenuePage() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [invoiceForm, setInvoiceForm] = useState({
+    clientId: '',
+    projectId: '',
+    amount: '',
+    dueDate: '',
+    description: '',
+    invoiceNumber: ''
+  });
+  const [editingInvoiceId, setEditingInvoiceId] = useState<string | null>(null);
+  const [clients, setClients] = useState<{ _id: string; name: string }[]>([]);
+  const [projects, setProjects] = useState<{ _id: string; name: string }[]>([]);
+
 
   useEffect(() => {
     const fetchData = async () => {
@@ -57,6 +72,22 @@ export default function RevenuePage() {
           const invoicesData = await invoicesRes.json();
           setInvoices(invoicesData.invoices);
         }
+
+        const clientsRes = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000'}/api/clients?limit=100`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (clientsRes.ok) {
+          const clientsData = await clientsRes.json();
+          setClients(clientsData.clients);
+        }
+
+        const projectsRes = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000'}/api/projects?limit=100`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (projectsRes.ok) {
+          const projectsData = await projectsRes.json();
+          setProjects(projectsData.projects);
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Error loading data');
       } finally {
@@ -66,6 +97,101 @@ export default function RevenuePage() {
 
     fetchData();
   }, [token]);
+
+  const resetInvoiceForm = () => {
+    setInvoiceForm({
+      clientId: '',
+      projectId: '',
+      amount: '',
+      dueDate: '',
+      description: '',
+      invoiceNumber: ''
+    });
+    setEditingInvoiceId(null);
+  };
+
+  const handleInvoiceSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!token) return;
+
+    try {
+      const payload = {
+        clientId: invoiceForm.clientId,
+        projectId: invoiceForm.projectId,
+        amount: Number(invoiceForm.amount),
+        dueDate: invoiceForm.dueDate,
+        description: invoiceForm.description,
+        invoiceNumber: invoiceForm.invoiceNumber
+      };
+
+      const url = editingInvoiceId
+        ? `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000'}/api/invoices/${editingInvoiceId}`
+        : `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000'}/api/invoices`;
+
+      const method = editingInvoiceId ? 'PUT' : 'POST';
+      const res = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message || 'Failed to save invoice');
+      }
+
+      const saved = await res.json();
+      if (editingInvoiceId) {
+        setInvoices((prev) => prev.map(inv => inv._id === editingInvoiceId ? saved : inv));
+      } else {
+        setInvoices((prev) => [saved, ...prev]);
+      }
+
+      resetInvoiceForm();
+      const statsRes = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000'}/api/invoices/stats/overview`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (statsRes.ok) {
+        setStats(await statsRes.json());
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error saving invoice');
+    }
+  };
+
+  const handleInvoiceEdit = (invoice: Invoice) => {
+    const invoiceAny = invoice as any;
+    setEditingInvoiceId(invoice._id);
+    setInvoiceForm({
+      clientId: invoiceAny.clientId?._id || invoiceAny.clientId?.name || '',
+      projectId: invoiceAny.projectId?._id || '',
+      amount: invoice.amount.toString(),
+      description: invoiceAny.description || '',
+      dueDate: invoice.dueDate.split('T')[0],
+      invoiceNumber: invoice.invoiceNumber || ''
+    });
+  };
+
+  const handleInvoiceDelete = async (id: string) => {
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000'}/api/invoices/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (!res.ok) throw new Error('Failed to delete invoice');
+      setInvoices(prev => prev.filter(inv => inv._id !== id));
+      const statsRes = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000'}/api/invoices/stats/overview`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (statsRes.ok) setStats(await statsRes.json());
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error deleting invoice');
+    }
+  };
+
 
   const statusColor = (status: string) => {
     switch (status) {
@@ -97,6 +223,75 @@ export default function RevenuePage() {
               New Invoice
             </Link>
           </div>
+
+          <Card id="create-invoice" className="p-6">
+            <h2 className="text-xl font-semibold mb-4">{editingInvoiceId ? 'Edit Invoice' : 'Create New Invoice'}</h2>
+            <form onSubmit={handleInvoiceSubmit} className="grid grid-cols-1 lg:grid-cols-6 gap-3">
+              <select
+                className="col-span-2 px-3 py-2 border border-gray-300 rounded-lg"
+                value={invoiceForm.clientId}
+                onChange={(e) => setInvoiceForm(prev => ({ ...prev, clientId: e.target.value }))}
+                required
+              >
+                <option value="">Select Client</option>
+                {clients.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
+              </select>
+              <select
+                className="col-span-2 px-3 py-2 border border-gray-300 rounded-lg"
+                value={invoiceForm.projectId}
+                onChange={(e) => setInvoiceForm(prev => ({ ...prev, projectId: e.target.value }))}
+                required
+              >
+                <option value="">Select Project</option>
+                {projects.map(p => <option key={p._id} value={p._id}>{p.name}</option>)}
+              </select>
+              <Input
+                type="number"
+                name="amount"
+                className="col-span-1"
+                placeholder="Amount"
+                value={invoiceForm.amount}
+                onChange={(e) => setInvoiceForm(prev => ({ ...prev, amount: e.target.value }))}
+                required
+              />
+              <Input
+                type="date"
+                name="dueDate"
+                className="col-span-1"
+                value={invoiceForm.dueDate}
+                onChange={(e) => setInvoiceForm(prev => ({ ...prev, dueDate: e.target.value }))}
+                required
+              />
+              <Input
+                name="invoiceNumber"
+                className="col-span-2"
+                placeholder="Invoice #"
+                value={invoiceForm.invoiceNumber}
+                onChange={(e) => setInvoiceForm(prev => ({ ...prev, invoiceNumber: e.target.value }))}
+              />
+              <Input
+                name="description"
+                className="col-span-4"
+                placeholder="Description"
+                value={invoiceForm.description}
+                onChange={(e) => setInvoiceForm(prev => ({ ...prev, description: e.target.value }))}
+              />
+              <div className="col-span-2 flex gap-2">
+                <button type="submit" className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90">
+                  {editingInvoiceId ? 'Update Invoice' : 'Create Invoice'}
+                </button>
+                {editingInvoiceId && (
+                  <button
+                    type="button"
+                    className="px-4 py-2 bg-gray-200 rounded-lg"
+                    onClick={resetInvoiceForm}
+                  >
+                    Cancel
+                  </button>
+                )}
+              </div>
+            </form>
+          </Card>
 
           {error && (
             <div className="flex items-center gap-3 bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded-lg">

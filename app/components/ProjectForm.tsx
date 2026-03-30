@@ -21,6 +21,11 @@ interface ProjectData {
   dueDate: string;
   budget: string;
   priority: 'Low' | 'Medium' | 'High' | 'Critical';
+  assignedTo: string[];
+  invoicedAmount: string;
+  paidAmount: string;
+  billingStatus: 'Not Invoiced' | 'Invoiced' | 'Partial' | 'Paid';
+  paymentTerms: string;
 }
 
 interface Client {
@@ -29,12 +34,20 @@ interface Client {
   company: string;
 }
 
+interface Employee {
+  _id: string;
+  firstName: string;
+  lastName: string;
+  role: string;
+}
+
 export function ProjectForm({ projectId, onSuccess }: ProjectFormProps) {
   const { token } = useAuth();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [clients, setClients] = useState<Client[]>([]);
+  const [employees, setEmployees] = useState<Employee[]>([]);
   const [formData, setFormData] = useState<ProjectData>({
     name: '',
     clientId: '',
@@ -43,7 +56,12 @@ export function ProjectForm({ projectId, onSuccess }: ProjectFormProps) {
     startDate: '',
     dueDate: '',
     budget: '',
-    priority: 'Medium'
+    priority: 'Medium',
+    assignedTo: [],
+    invoicedAmount: '',
+    paidAmount: '',
+    billingStatus: 'Not Invoiced',
+    paymentTerms: 'Net 30'
   });
 
   // Load clients and project if editing
@@ -62,6 +80,18 @@ export function ProjectForm({ projectId, onSuccess }: ProjectFormProps) {
         if (clientsResponse.ok) {
           const clientsData = await clientsResponse.json();
           setClients(clientsData.clients);
+        }
+
+        // Fetch employees for assigning to project (manager/admin)
+        const employeesResponse = await fetch(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000'}/api/employees`,
+          {
+            headers: { 'Authorization': `Bearer ${token}` }
+          }
+        );
+        if (employeesResponse.ok) {
+          const employeesData = await employeesResponse.json();
+          setEmployees(employeesData);
         }
 
         // Fetch project if editing
@@ -83,7 +113,12 @@ export function ProjectForm({ projectId, onSuccess }: ProjectFormProps) {
             startDate: project.startDate ? project.startDate.split('T')[0] : '',
             dueDate: project.dueDate ? project.dueDate.split('T')[0] : '',
             budget: project.budget ? project.budget.toString() : '',
-            priority: project.priority
+            priority: project.priority,
+            assignedTo: (project.assignedTo || []).map((user: any) => user._id),
+            invoicedAmount: project.invoicedAmount ? project.invoicedAmount.toString() : '',
+            paidAmount: project.paidAmount ? project.paidAmount.toString() : '',
+            billingStatus: project.billingStatus || 'Not Invoiced',
+            paymentTerms: project.paymentTerms || 'Net 30'
           });
         }
       } catch (err) {
@@ -109,7 +144,9 @@ export function ProjectForm({ projectId, onSuccess }: ProjectFormProps) {
     try {
       const submitData = {
         ...formData,
-        budget: formData.budget ? parseFloat(formData.budget) : 0
+        budget: formData.budget ? parseFloat(formData.budget) : 0,
+        invoicedAmount: formData.invoicedAmount ? parseFloat(formData.invoicedAmount) : 0,
+        paidAmount: formData.paidAmount ? parseFloat(formData.paidAmount) : 0
       };
 
       const method = projectId ? 'PUT' : 'POST';
@@ -270,6 +307,81 @@ export function ProjectForm({ projectId, onSuccess }: ProjectFormProps) {
               onChange={handleChange}
               placeholder="0.00"
             />
+          </div>
+
+          {/* Billing/Payment Information */}
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Billing / Payment</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Invoiced Amount ($)</label>
+                <Input
+                  name="invoicedAmount"
+                  type="number"
+                  step="0.01"
+                  value={formData.invoicedAmount}
+                  onChange={handleChange}
+                  placeholder="0.00"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Paid Amount ($)</label>
+                <Input
+                  name="paidAmount"
+                  type="number"
+                  step="0.01"
+                  value={formData.paidAmount}
+                  onChange={handleChange}
+                  placeholder="0.00"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4 mt-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Billing Status</label>
+                <select
+                  name="billingStatus"
+                  value={formData.billingStatus}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="Not Invoiced">Not Invoiced</option>
+                  <option value="Invoiced">Invoiced</option>
+                  <option value="Partial">Partial</option>
+                  <option value="Paid">Paid</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Payment Terms</label>
+                <Input
+                  name="paymentTerms"
+                  value={formData.paymentTerms}
+                  onChange={handleChange}
+                  placeholder="Net 30"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Team Assignment */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Assign Team Members</label>
+            <select
+              name="assignedTo"
+              value={formData.assignedTo}
+              onChange={(e) => {
+                const selectedOptions = Array.from(e.target.selectedOptions, option => option.value);
+                setFormData(prev => ({ ...prev, assignedTo: selectedOptions }));
+              }}
+              multiple
+              className="w-full h-28 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              {employees.map(emp => (
+                <option key={emp._id} value={emp._id}>
+                  {emp.firstName} {emp.lastName} ({emp.role})
+                </option>
+              ))}
+            </select>
           </div>
 
           {/* Buttons */}

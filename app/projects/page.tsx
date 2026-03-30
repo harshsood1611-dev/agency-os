@@ -20,6 +20,7 @@ interface Project {
   priority: 'Low' | 'Medium' | 'High' | 'Critical';
   dueDate: string;
   budget: number;
+  assignedTo?: { _id: string; firstName: string; lastName: string }[];
 }
 
 interface PaginationInfo {
@@ -189,8 +190,7 @@ export default function ProjectsPage() {
                       <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Client</th>
                       <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Status</th>
                       <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Priority</th>
-                      <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Due Date</th>
-                      <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Budget</th>
+                      <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Due Date</th>                        <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Team</th>                      <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Budget</th>
                       <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Actions</th>
                     </tr>
                   </thead>
@@ -220,6 +220,9 @@ export default function ProjectsPage() {
                         </td>
                         <td className="px-6 py-4 text-sm text-gray-600">
                           {project.dueDate ? new Date(project.dueDate).toLocaleDateString() : '-'}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-600">
+                          {project.assignedTo && project.assignedTo.length > 0 ? project.assignedTo.map((user) => `${user.firstName} ${user.lastName}`).join(', ') : '-'}
                         </td>
                         <td className="px-6 py-4 text-sm text-gray-600">
                           ${project.budget.toFixed(2)}

@@ -35,6 +35,23 @@ const projectSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
+  invoicedAmount: {
+    type: Number,
+    default: 0
+  },
+  paidAmount: {
+    type: Number,
+    default: 0
+  },
+  billingStatus: {
+    type: String,
+    enum: ['Not Invoiced', 'Invoiced', 'Partial', 'Paid'],
+    default: 'Not Invoiced'
+  },
+  paymentTerms: {
+    type: String,
+    default: 'Net 30'
+  },
   assignedTo: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
